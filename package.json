@@ -1,0 +1,30 @@
+{
+  "name": "rss-service",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "format": "npx prettier --write .",
+    "build": "webpack --config webpack.backend.config.js",
+    "deploy:dev": "sam deploy --template template.yaml --stack-name dev-news-extractor-stack --s3-bucket news-extractor-deployment-assets --s3-prefix dev --capabilities CAPABILITY_NAMED_IAM --region ap-southeast-2 --parameter-overrides env=dev",
+    "deploy:prod": "sam deploy --template template.yaml --stack-name prod-news-extractor-stack --s3-bucket news-extractor-deployment-assets --s3-prefix prod --capabilities CAPABILITY_NAMED_IAM --region ap-southeast-2 --parameter-overrides env=prod"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.1333.0",
+    "axios": "^1.3.4",
+    "rss-parser": "^3.13.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.111",
+    "@types/aws-sdk": "^2.7.0",
+    "@types/axios": "^0.14.0",
+    "@types/node": "^18.14.6",
+    "prettier": "^2.8.7",
+    "ts-loader": "^9.4.2",
+    "typescript": "^4.9.5",
+    "webpack": "^5.76.1",
+    "webpack-cli": "^5.0.1"
+  },
+  "author": "Asif Alam",
+  "license": "ISC"
+}

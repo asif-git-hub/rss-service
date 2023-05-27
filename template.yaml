@@ -1,0 +1,122 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: "AWS::Serverless-2016-10-31"
+Description: Template for trip planner backend
+
+# Parameters
+Parameters:
+  env:
+    Type: String
+    Description: Name of an environment. 'dev', 'test', 'prod' and any name.
+    AllowedPattern: ^.*[^0-9]$
+    ConstraintDescription: Must end with non-numeric character.
+
+Resources:
+  # Role #####################################################
+  lambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${env}-news-extractor-lambda-role"
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+        Version: 2012-10-17
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSLambdaExecute
+      Path: /
+      Policies:
+        - PolicyName: LambdaFeedDatabaseAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "dynamodb:GetItem"
+                  - "dynamodb:Query"
+                  - "dynamodb:DescribeTable"
+                  - "dynamodb:PutItem"
+                  - "dynamodb:Scan"
+                Resource: !GetAtt feedTable.Arn
+        - PolicyName: LambdaFeedContentDatabaseAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "dynamodb:PutItem"
+                  - "dynamodb:Query"
+                  - "dynamodb:GetItem"
+                  - "dynamodb:DescribeTable"
+                Resource: !GetAtt feedContentTable.Arn
+
+  # DynamoDB #######################################################
+
+  feedTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub ${env}-feed-table
+      AttributeDefinitions:
+        - AttributeName: feed
+          AttributeType: S
+      KeySchema:
+        - AttributeName: feed
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 1
+
+  feedContentTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub ${env}-feed-content-table
+      AttributeDefinitions:
+        - AttributeName: feed
+          AttributeType: S
+        - AttributeName: articleLink
+          AttributeType: S
+      KeySchema:
+        - AttributeName: feed
+          KeyType: HASH
+        - AttributeName: articleLink
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 5
+
+  # Lambda ################################################
+
+  dailyFeedFetcher:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${env}-feed-fetcher-lambda
+      Description: Fetches feed everyday
+      Runtime: nodejs16.x
+      CodeUri: ./build/feed-fetcher/index.js
+      Handler: index.handler
+      MemorySize: 128
+      Timeout: 850
+      Role: !GetAtt
+        - lambdaRole
+        - Arn
+      Environment:
+        Variables:
+          ENV: !Sub ${env}
+          FEED_TABLE_NAME: !Ref feedTable
+          FEED_CONTENT_TABLE_NAME: !Ref feedContentTable
+      Events:
+        EventbridgeRule:
+          Type: CloudWatchEvent
+          Properties:
+            Pattern:
+              source:
+                - "aws.events"
+              detail-type:
+                - "Scheduled Event"
+              detail:
+                schedule-expression:
+                - "cron(0 0 * * ? *)"
+            State: DISABLED
