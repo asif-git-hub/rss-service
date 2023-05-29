@@ -109,14 +109,7 @@ Resources:
           FEED_CONTENT_TABLE_NAME: !Ref feedContentTable
       Events:
         EventbridgeRule:
-          Type: CloudWatchEvent
+          Type: Schedule
           Properties:
-            Pattern:
-              source:
-                - "aws.events"
-              detail-type:
-                - "Scheduled Event"
-              detail:
-                schedule-expression:
-                - "cron(0 0 * * ? *)"
-            State: DISABLED
+            Schedule: cron(0 20 * * ? *)   # Change if needed
+            State: DISABLED   # Enable state when needed
