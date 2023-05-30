@@ -111,5 +111,5 @@ Resources:
         EventbridgeRule:
           Type: Schedule
           Properties:
-            Schedule: cron(0 20 * * ? *)   # Change if needed
+            Schedule: cron(0 3 * * ? *)   # Change if needed
             State: DISABLED   # Enable state when needed
