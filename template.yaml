@@ -62,9 +62,13 @@ Resources:
       AttributeDefinitions:
         - AttributeName: feed
           AttributeType: S
+        - AttributeName: region
+          AttributeType: S
       KeySchema:
         - AttributeName: feed
           KeyType: HASH
+        - AttributeName: region
+          KeyType: RANGE
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 1
@@ -86,6 +90,24 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 1
         WriteCapacityUnits: 5
+
+  feedPromptTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub ${env}-feed-prompt-table
+      AttributeDefinitions:
+        - AttributeName: role
+          AttributeType: S
+        - AttributeName: region
+          AttributeType: S
+      KeySchema:
+        - AttributeName: role
+          KeyType: HASH
+        - AttributeName: region
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 1
 
   # Lambda ################################################
 
@@ -111,5 +133,5 @@ Resources:
         EventbridgeRule:
           Type: Schedule
           Properties:
-            Schedule: cron(0 3 * * ? *)   # Change if needed
-            State: DISABLED   # Enable state when needed
+            Schedule: cron(0 3 * * ? *) # Change if needed
+            State: DISABLED # Enable state when needed

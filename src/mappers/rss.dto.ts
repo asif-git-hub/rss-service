@@ -4,14 +4,16 @@ import { toDateString } from "../utils/datetime.utils"
 
 export function mapRssToDatabaseItem(
   feed: string,
+  region: string,
   item: RssItemType
 ): FeedContentRecordType {
   return {
     feed,
+    region,
     articleDate: toDateString(item.pubDate),
     title: item.title,
     articleLink: item.link,
-    content: item.content,
+    contentFromFeed: item.content,
     savedAt: new Date().toISOString(),
   }
 }

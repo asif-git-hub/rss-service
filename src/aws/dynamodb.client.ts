@@ -69,4 +69,23 @@ export class DynamoDBClient {
 
     return result.Items
   }
+
+  async updateOneField<T>(
+    tableName: string,
+    keyItem: Record<string, T>,
+    updateField: Record<string, T>
+  ) {
+    const fieldToUpdate = Object.keys(updateField)[0]
+
+    await this.dynamodb
+      .update({
+        TableName: tableName,
+        Key: keyItem,
+        UpdateExpression: `set ${fieldToUpdate} = :x`,
+        ExpressionAttributeValues: {
+          ":x": updateField[fieldToUpdate],
+        },
+      })
+      .promise()
+  }
 }

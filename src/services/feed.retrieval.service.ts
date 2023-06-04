@@ -25,7 +25,7 @@ export class FeedRetrievalService {
 
     // Get RSS Feed Content
     for (const feedRecord of feedRecords) {
-      const { feed } = feedRecord
+      const { feed, region } = feedRecord
       console.log(`Retrieving feed for ${feed}`)
 
       const feedResponse = await this.rssClient.getFeed(feed)
@@ -36,12 +36,12 @@ export class FeedRetrievalService {
 
       // Save RSS Feed Content Items
       for (const item of feedResponse.items) {
-        const feedContentRecord = mapRssToDatabaseItem(feed, item)
+        const feedContentRecord = mapRssToDatabaseItem(feed, region, item)
         await this.feedContentRepo.insertSingleContent(feedContentRecord)
       }
-      
+
       // Update Feed Table with fetch Date
-      await this.feedRepo.updateFetchDate(feed)
+      await this.feedRepo.updateFetchDate(feed, region)
       console.log(`Updated feed cotent for ${feed}`)
     }
   }

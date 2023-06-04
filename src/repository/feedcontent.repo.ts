@@ -2,11 +2,13 @@ import { DynamoDBClient } from "../aws/dynamodb.client"
 import { getEnvVar } from "../utils/common.utils"
 
 export type FeedContentRecordType = {
-  feed: string          // HASH
+  feed: string // HASH
   articleDate: string
   title: string
-  articleLink: string   // SORT
-  content: string
+  region: string
+  articleLink: string // SORT
+  contentFromFeed: string
+  contentFromScraping?: string
   savedAt: string
 }
 
@@ -21,5 +23,11 @@ export class FeedContentRepository {
 
   async insertSingleContent(item: FeedContentRecordType) {
     await this.dynamodbClient.put(this.tableName, item)
+  }
+
+  async getAllFeedContents(): Promise<FeedContentRecordType[]> {
+    return (await this.dynamodbClient.getAll(
+      this.tableName
+    )) as FeedContentRecordType[]
   }
 }
