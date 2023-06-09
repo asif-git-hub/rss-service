@@ -38,4 +38,27 @@ export class FeedPromptRepository {
       "unspecified"
     )) as FeedPromptRecordType | undefined
   }
+
+  async getPromptOrFallbackPromptByRegion(
+    region: string
+  ): Promise<FeedPromptRecordType> {
+    let promptRecord = await this.getPrompt("unspecified", region)
+    // Check for fallback case
+    if (!promptRecord) {
+      console.log(
+        `Prompt not found for role unspecified and region ${region}. Fetching fallback`
+      )
+
+      promptRecord = await this.getFallbackPrompt()
+
+      if (!promptRecord) {
+        console.error(
+          `Fallback prompt missing from database for region ${region}`
+        )
+        throw new Error("Fallback prompt missing from database")
+      }
+    }
+
+    return promptRecord
+  }
 }

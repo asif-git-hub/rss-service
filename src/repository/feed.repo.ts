@@ -4,6 +4,8 @@ import { getEnvVar } from "../utils/common.utils"
 export type FeedRecordType = {
   feed: string
   region: string
+  scrapeLinks?: boolean
+  scrapingSelector?: string
   lastFetchedAt?: string
 }
 

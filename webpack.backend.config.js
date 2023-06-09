@@ -3,6 +3,7 @@ const path = require("path")
 module.exports = {
   entry: {
     "feed-fetcher": "./src/handlers/feed.fetcher.ts",
+    "summarizer-task": "./src/ecs-tasks/summarizer.task.ts",
   },
   mode: "production",
   target: "node",

@@ -1,19 +1,22 @@
 import { FeedContentRecordType } from "../repository/feedcontent.repo"
 import { RssItemType } from "../types/rss.types"
-import { toDateString } from "../utils/datetime.utils"
+import { toDateTimeString } from "../utils/datetime.utils"
+import { removeSpacings } from "../utils/common.utils"
 
-export function mapRssToDatabaseItem(
+export function mapRssToFeedContentItem(
   feed: string,
   region: string,
-  item: RssItemType
+  item: RssItemType,
+  contentFromScraping?: string
 ): FeedContentRecordType {
   return {
     feed,
     region,
-    articleDate: toDateString(item.pubDate),
+    articleDate: toDateTimeString(item.pubDate),
     title: item.title,
     articleLink: item.link,
     contentFromFeed: item.content,
+    contentFromScraping: removeSpacings(contentFromScraping),
     savedAt: new Date().toISOString(),
   }
 }

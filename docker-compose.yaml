@@ -1,0 +1,10 @@
+version: "3.8"
+
+services:
+  summarizer-task:
+    image: summarizer:latest
+    ports:
+      - 8080:80
+      - 80:80
+    volumes:
+      - ./data:/app/data

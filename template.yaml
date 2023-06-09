@@ -9,9 +9,30 @@ Parameters:
     Description: Name of an environment. 'dev', 'test', 'prod' and any name.
     AllowedPattern: ^.*[^0-9]$
     ConstraintDescription: Must end with non-numeric character.
+  dockerImage:
+    Type: String
+    Description: Docker Image for ECS
+    Default: 604572496265.dkr.ecr.ap-southeast-2.amazonaws.com/rss-processor:latest
+  vpcId:
+    Type: String
+    Description: VPC ID
+    Default: vpc-0e7a6bad67e11c58e
+  subnet1:
+    Type: String
+    Description: Subnet in the VPC
+    Default: subnet-08d6447bae41110f7
+  subnet2:
+    Type: String
+    Description: Subnet in the VPC
+    Default: subnet-0d9d733e01e1dded0
+  subnet3:
+    Type: String
+    Description: Subnet in the VPC
+    Default: subnet-022630a09143c9629
 
 Resources:
   # Role #####################################################
+
   lambdaRole:
     Type: AWS::IAM::Role
     Properties:
@@ -40,6 +61,7 @@ Resources:
                   - "dynamodb:DescribeTable"
                   - "dynamodb:PutItem"
                   - "dynamodb:Scan"
+                  - "dynamodb:UpdateItem"
                 Resource: !GetAtt feedTable.Arn
         - PolicyName: LambdaFeedContentDatabaseAccess
           PolicyDocument:
@@ -109,6 +131,24 @@ Resources:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 1
 
+  feedRegionSummaryTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub ${env}-feed-region-summary-table
+      AttributeDefinitions:
+        - AttributeName: region
+          AttributeType: S
+        - AttributeName: articleDate
+          AttributeType: S
+      KeySchema:
+        - AttributeName: region
+          KeyType: HASH
+        - AttributeName: articleDate
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
   # Lambda ################################################
 
   dailyFeedFetcher:
@@ -119,7 +159,7 @@ Resources:
       Runtime: nodejs16.x
       CodeUri: ./build/feed-fetcher/index.js
       Handler: index.handler
-      MemorySize: 128
+      MemorySize: 512
       Timeout: 850
       Role: !GetAtt
         - lambdaRole
@@ -135,3 +175,206 @@ Resources:
           Properties:
             Schedule: cron(0 3 * * ? *) # Change if needed
             State: DISABLED # Enable state when needed
+
+  # Security Groups ######################################################
+
+  ECSContainerSecruityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: ECS Container Security Group
+      GroupName: !Sub "${env}-ecs-container-sg"
+      VpcId: !Ref vpcId
+      SecurityGroupIngress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+
+  # ECS ######################################################
+
+  SchedulerRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: !Sub "${env}-ecs-task-scheduler-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: events.amazonaws.com
+            Action: "sts:AssumeRole"
+      Path: "/"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+      Policies:
+        - PolicyName: SchedulePolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecs:*
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                Resource: "*"
+
+  TaskExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: !Sub "${env}-ecs-task-execution-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "ecs-tasks.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Path: "/"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+      Policies:
+        - PolicyName: my-execution-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecs:CreateCluster
+                  - ecs:DeregisterTaskDefinition
+                  - ecs:DescribeClusters
+                  - ecs:DescribeTaskDefinition
+                  - ecs:ListClusters
+                  - ecs:ListTaskDefinitions
+                  - ecs:RegisterTaskDefinition
+                  - ecr:*
+                Resource: "*"
+        - PolicyName: ecr-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                  - ssm:GetParameters
+                  - secretsmanager:GetSecretValue
+                  - kms:Decrypt
+                Resource: "*"
+
+  TaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${env}-ecs-task-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: task-log-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:*:*:log-group:/ecs/my-task:*
+        - PolicyName: ssm-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:*
+                Resource: "*"
+        - PolicyName: extra-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecr:*
+                  - dynamodb:*
+                Resource: "*"
+
+  CloudwatchLogsGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName: !Sub "${AWS::StackName}-ECSLogGroup"
+      RetentionInDays: 14
+
+  ECSCluster:
+    Type: "AWS::ECS::Cluster"
+    Properties:
+      ClusterName: !Sub "${env}-feed-processor-cluster"
+
+  ECSTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "${env}-feed-processor-ecs-task"
+      Cpu: 512
+      Memory: 1024
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !Ref TaskExecutionRole
+      TaskRoleArn: !Ref TaskRole
+      ContainerDefinitions:
+        - Name: !Sub "${env}-ecs-task-container"
+          Cpu: 512
+          Memory: 1024
+          Image: !Ref dockerImage # PUSH TO ECR
+          PortMappings:
+            - ContainerPort: 80
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref CloudwatchLogsGroup
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: ecs
+          Environment:
+            - Name: ENV
+              Value: !Sub ${env}
+            - Name: FEED_TABLE_NAME
+              Value: !Ref feedTable
+            - Name: FEED_CONTENT_TABLE_NAME
+              Value: !Ref feedContentTable
+            - Name: PROMPT_TABLE_NAME
+              Value: !Ref feedPromptTable
+            - Name: FEED_REGION_SUMMARY_TABLE_NAME
+              Value: !Ref feedRegionSummaryTable
+            - Name: OPENAI_COMPLETION_URL
+              Value: https://api.openai.com/v1/completions
+
+  # ECS Event Rule
+
+  TaskScheduleRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "Schedule rule for ECS Task"
+      Name: !Sub ${env}-feed-content-summarizer-rule
+      State: DISABLED
+      ScheduleExpression: cron(30 3 * * ? *)
+      Targets:
+        - Arn: !GetAtt ECSCluster.Arn
+          RoleArn: !GetAtt SchedulerRole.Arn
+          Id: !Sub ${env}-feed-content-scheduled-task
+          # Input: !Sub '{ "containerOverrides": [{"name": "MyTaskContainer", "environment": [{"name":"APPLICATION_ENV","value":"${Stage}"}]}'
+          EcsParameters:
+            TaskDefinitionArn: !Ref ECSTaskDefinition
+            LaunchType: FARGATE
+            NetworkConfiguration:
+              AwsVpcConfiguration:
+                AssignPublicIp: ENABLED
+                SecurityGroups:
+                  - !Ref ECSContainerSecruityGroup
+                Subnets:
+                  - !Ref subnet1
+                  - !Ref subnet2
+                  - !Ref subnet3
