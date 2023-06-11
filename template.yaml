@@ -360,7 +360,7 @@ Resources:
       Description: "Schedule rule for ECS Task"
       Name: !Sub ${env}-feed-content-summarizer-rule
       State: DISABLED
-      ScheduleExpression: cron(30 3 * * ? *)
+      ScheduleExpression: cron(20 4 * * ? *)
       Targets:
         - Arn: !GetAtt ECSCluster.Arn
           RoleArn: !GetAtt SchedulerRole.Arn
