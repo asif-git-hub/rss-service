@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: "AWS::Serverless-2016-10-31"
-Description: Template for trip planner backend
+Description: Template for rss feed
 
 # Parameters
 Parameters:
@@ -84,12 +84,12 @@ Resources:
       AttributeDefinitions:
         - AttributeName: feed
           AttributeType: S
-        - AttributeName: region
+        - AttributeName: regionCode
           AttributeType: S
       KeySchema:
         - AttributeName: feed
           KeyType: HASH
-        - AttributeName: region
+        - AttributeName: regionCode
           KeyType: RANGE
       ProvisionedThroughput:
         ReadCapacityUnits: 5
@@ -120,12 +120,12 @@ Resources:
       AttributeDefinitions:
         - AttributeName: role
           AttributeType: S
-        - AttributeName: region
+        - AttributeName: regionCode
           AttributeType: S
       KeySchema:
         - AttributeName: role
           KeyType: HASH
-        - AttributeName: region
+        - AttributeName: regionCode
           KeyType: RANGE
       ProvisionedThroughput:
         ReadCapacityUnits: 5
@@ -136,14 +136,32 @@ Resources:
     Properties:
       TableName: !Sub ${env}-feed-region-summary-table
       AttributeDefinitions:
-        - AttributeName: region
+        - AttributeName: regionCode
           AttributeType: S
         - AttributeName: articleDate
           AttributeType: S
       KeySchema:
-        - AttributeName: region
+        - AttributeName: regionCode
           KeyType: HASH
         - AttributeName: articleDate
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
+  feedSpecialSummaryTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub ${env}-feed-special-summary-table
+      AttributeDefinitions:
+        - AttributeName: role
+          AttributeType: S
+        - AttributeName: regionAndArticleDate
+          AttributeType: S
+      KeySchema:
+        - AttributeName: role
+          KeyType: HASH
+        - AttributeName: regionAndArticleDate
           KeyType: RANGE
       ProvisionedThroughput:
         ReadCapacityUnits: 5
@@ -349,11 +367,14 @@ Resources:
               Value: !Ref feedPromptTable
             - Name: FEED_REGION_SUMMARY_TABLE_NAME
               Value: !Ref feedRegionSummaryTable
+            - Name: FEED_SPECIAL_SUMMARY_TABLE_NAME
+              Value: !Ref feedSpecialSummaryTable
             - Name: OPENAI_COMPLETION_URL
               Value: https://api.openai.com/v1/completions
+            - Name: GPT_DELAY_IN_MS
+              Value: 3000
 
   # ECS Event Rule
-
   TaskScheduleRule:
     Type: AWS::Events::Rule
     Properties:

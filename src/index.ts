@@ -1,6 +1,6 @@
-import { RssClient } from "./clients/rss.client"
-const parser = new RssClient()
+import { ChatGPTClient } from './clients/chatgpt.client';
 
-parser.getFeed("http://rss.cnn.com/rss/cnn_topstories.rss").then((r) => {
-  console.log(r)
-})
+const chatgpt = new ChatGPTClient()
+chatgpt.completeWithErrorHandling("Say hello")
+  .then(r => console.log(r?.data?.choices[0]?.text))
+  .catch(e => console.log(e))

@@ -5,16 +5,15 @@ import {
   FeedRegionSummaryRecordType,
   FeedRegionSummaryRepository,
 } from "../repository/region.summary.repo"
-import { delay } from "../utils/common.utils"
 import { toDateString } from "../utils/datetime.utils"
 
 type SummaryGroupingType = {
-  region: string
+  regionCode: string
   articleDate: string
   summaryTexts: string[]
 }
 
-export class ArticleSummaryService {
+export class RegionSummaryService {
   private chatgptClient: ChatGPTClient
   private feedContentRepo: FeedContentRepository
   private feedRegionSummaryRepo: FeedRegionSummaryRepository
@@ -38,11 +37,11 @@ export class ArticleSummaryService {
         if (summary.summaryTexts.length === 1) {
           // Already one summary for region and date, save it to db
           console.log(
-            `Saving summary for region ${summary.region}: `,
+            `Saving summary for region ${summary.regionCode} and articleDate: ${summary.articleDate}: `,
             summary.summaryTexts
           )
           await this.feedRegionSummaryRepo.createSummaryRecord({
-            region: summary.region,
+            regionCode: summary.regionCode,
             articleDate: summary.articleDate,
             summaryText: summary.summaryTexts[0],
             createdAt: new Date().toISOString(),
@@ -51,24 +50,30 @@ export class ArticleSummaryService {
 
         if (summary.summaryTexts.length > 1) {
           // Multiple summaries for region and date, make one summary from multiple by using chatgpt
+          const multipleSummaries = summary.summaryTexts
+            .toString()
+            .replace(/\n/g, "")
+          console.log(
+            `Multiple summary texts (${summary.summaryTexts.length}) found: `,
+            multipleSummaries
+          )
           const promptRecord =
             await this.promptRepo.getPromptOrFallbackPromptByRegion(
-              summary.region
+              summary.regionCode
             )
 
           const singleSummary =
             await this.chatgptClient.completeWithErrorHandling(
-              promptRecord.prompt +
-                summary.summaryTexts.toString().replace(/\n/g, "")
+              promptRecord.prompt + multipleSummaries
             )
 
           console.log(
-            `Saving one summary from multiple summaries for region ${summary.region} to table`,
-            singleSummary
+            `Saving one summary from multiple summaries for region: ${summary.regionCode} and articleDate: ${summary.articleDate}`,
+            singleSummary?.data.choices[0].text
           )
 
           await this.feedRegionSummaryRepo.createSummaryRecord({
-            region: summary.region,
+            regionCode: summary.regionCode,
             articleDate: summary.articleDate,
             summaryText: singleSummary
               ? singleSummary.data.choices[0].text
@@ -77,7 +82,7 @@ export class ArticleSummaryService {
           })
         }
       } else {
-        console.warn(`article date missing for ${summary.region}`)
+        console.warn(`article date missing for ${summary.regionCode}`)
       }
     }
   }
@@ -89,12 +94,12 @@ export class ArticleSummaryService {
     const groupedObjects: Record<string, SummaryGroupingType> = {}
 
     for (const summary of summaries) {
-      const key = summary.region + summary.articleDate
+      const key = summary.regionCode + summary.articleDate
       if (groupedObjects[key]) {
         groupedObjects[key].summaryTexts.push(summary.summaryText)
       } else {
         groupedObjects[key] = {
-          region: summary.region,
+          regionCode: summary.regionCode,
           articleDate: summary.articleDate,
           summaryTexts: [summary.summaryText],
         }
@@ -117,7 +122,7 @@ export class ArticleSummaryService {
     for (const feedContent of feedContents) {
       let promptRecord =
         await this.promptRepo.getPromptOrFallbackPromptByRegion(
-          feedContent.region
+          feedContent.regionCode
         )
 
       if (feedContent.contentFromFeed) {
@@ -128,15 +133,23 @@ export class ArticleSummaryService {
           feedContent.contentFromFeed,
           feedContent.contentFromScraping
         )
-        await delay(2000) // Delay it by 2s: Avoid 429 from OpenAI
+
         if (summaryText) {
           // Push Summary if available
+          console.log(
+            `Summary text formed for article: ${feedContent.articleLink} : `,
+            summaryText
+          )
           summaries.push({
-            region: feedContent.region,
+            regionCode: feedContent.regionCode,
             articleDate: toDateString(feedContent.articleDate),
             summaryText,
             createdAt: new Date().toISOString(),
           })
+        } else {
+          console.warn(
+            `Summary text not formed for article: ${feedContent.articleLink}`
+          )
         }
       }
     }
@@ -149,6 +162,7 @@ export class ArticleSummaryService {
     contentFromFeed: string,
     contentFromScraping?: string
   ): Promise<string | undefined> {
+    /* Create summary from either content from feed or content from web scraiping */
     const fullPrompt = contentFromScraping
       ? `${prompt} ${contentFromScraping}`
       : `${prompt} ${contentFromFeed}`
@@ -158,7 +172,10 @@ export class ArticleSummaryService {
     )
 
     if (!summaryResponse) {
-      // Try to get summary from using contentFromFeed
+      // If contentFromScraping too large, try to get summary from using contentFromFeed
+      console.log(
+        "Unable to create summary from contentFromScraping, trying with contentFromFeed"
+      )
       summaryResponse = await this.chatgptClient.completeWithErrorHandling(
         `${prompt} ${contentFromFeed}`
       )

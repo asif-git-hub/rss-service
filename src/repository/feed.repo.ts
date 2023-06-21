@@ -3,7 +3,7 @@ import { getEnvVar } from "../utils/common.utils"
 
 export type FeedRecordType = {
   feed: string
-  region: string
+  regionCode: string
   scrapeLinks?: boolean
   scrapingSelector?: string
   lastFetchedAt?: string
@@ -24,10 +24,10 @@ export class FeedRepository {
     return result as FeedRecordType[] | undefined
   }
 
-  async updateFetchDate(feed: string, region: string) {
+  async updateFetchDate(feed: string, regionCode: string) {
     await this.dynamodbClient.updateOneField(
       this.tableName,
-      { feed, region },
+      { feed, regionCode },
       { lastFetchedAt: new Date().toISOString() }
     )
   }

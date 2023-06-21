@@ -28,7 +28,7 @@ export class FeedRetrievalService {
 
     // Get RSS Feed Content
     for (const feedRecord of feedRecords) {
-      const { feed, region, scrapeLinks, scrapingSelector } = feedRecord
+      const { feed, regionCode, scrapeLinks, scrapingSelector } = feedRecord
       console.log(`Retrieving feed for ${feed}`)
 
       const feedResponse = await this.rssClient.getFeed(feed)
@@ -41,12 +41,7 @@ export class FeedRetrievalService {
       for (const item of feedResponse.items) {
         let contentFromScraping: undefined | string = undefined
         // Check if articles need to be scraped
-        if (
-          scrapeLinks &&
-          scrapingSelector &&
-          scrapeLinks === true &&
-          String(item.link).endsWith("html")
-        ) {
+        if (scrapeLinks && scrapingSelector && scrapeLinks === true) {
           console.log(`Content scraping required. Scraping: `, item.link)
           contentFromScraping = await this.scraperClient.getText(
             String(item.link),
@@ -55,7 +50,7 @@ export class FeedRetrievalService {
         }
         const feedContentRecord = mapRssToFeedContentItem(
           feed,
-          region,
+          regionCode,
           item,
           contentFromScraping
         )
@@ -63,7 +58,7 @@ export class FeedRetrievalService {
       }
 
       // Update Feed Table with fetch Date
-      await this.feedRepo.updateFetchDate(feed, region)
+      await this.feedRepo.updateFetchDate(feed, regionCode)
       console.log(`Updated feed cotent for ${feed}`)
     }
   }

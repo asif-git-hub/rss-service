@@ -76,7 +76,7 @@ export class ChatGPTClient {
       console.log("complete() called", prompt)
 
       const body = {
-        model: "text-davinci-003",
+        model: "gpt-3.5-turbo-16k",
         prompt,
         max_tokens: 3700,
         temperature: 0.1,
@@ -89,6 +89,8 @@ export class ChatGPTClient {
       const headers = new AxiosHeaders({
         Authorization: `Bearer ${apiKey}`,
       })
+
+      await delay(parseInt(getEnvVar("GPT_DELAY_IN_MS"))) // Delay next request: Avoid 429 from OpenAI
 
       return await this.httpClient.post(
         getEnvVar("OPENAI_COMPLETION_URL"),
@@ -104,16 +106,16 @@ export class ChatGPTClient {
         if (e.response?.status === 400) {
           console.warn(
             "Bad Request: Likely exceding model token size. Skipping request...",
-            e.response.data
+            JSON.stringify(e.response.data)
           )
         }
 
         if (e.response?.status === 429) {
           console.warn(
             "Rate limit reached! Skipping this request and wait for 10s before invoking next request",
-            e.response.data
+            JSON.stringify(e.response.data)
           )
-          await delay(10000)
+          await delay(10000) // wait 10s when 429
         }
       } else {
         // Consume other errors

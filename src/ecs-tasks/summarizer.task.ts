@@ -1,9 +1,9 @@
-import { ArticleSummaryService } from "../services/article.summary.service"
+import { SummaryOrchestratorService } from "../services/summary.orchestrator.service"
 
-const service = new ArticleSummaryService()
+const service = new SummaryOrchestratorService()
 
 service
-  .createOneSummaryPerArticleDateAndRegion()
+  .orchestrateSummaryCreation()
   .then(() => console.log("done"))
   .catch((e) => {
     console.error(e)

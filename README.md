@@ -13,7 +13,6 @@ Create an SSM Parameter with name "/openai/apikey" and put the access token for 
 
 npm run build
 
-
 ## Configuring the schedule
 
 The schedule is set as a cron expression in the template, this can be changed
@@ -27,7 +26,7 @@ The schedule is set as a cron expression in the template, this can be changed
 # Create an ECR Repository to hold docker image
 
 Go to AWS Console > ECR
-Create a repository with name 'rss-processor' make it public and choose all the default settings. 
+Create a repository with name 'rss-processor' make it public and choose all the default settings.
 If you give it another name, make sure to change the image name and the subsequent commands.
 
 # Push Image to ECR
@@ -63,19 +62,17 @@ sam deploy --template template.yaml --stack-name dev-news-extractor-stack --s3-b
 npm run deploy:dev for dev
 npm run deploy:prod for prod
 
-
-
 ## Sample RSS Feed Table
 
 - https://news.un.org/feed/subscribe/en/news/region/europe/feed/rss.xml
 
-```
+```json
 {
- "feed": "http://rss.cnn.com/rss/cnn_topstories.rss",
- "region": "us",
- "lastFetchedAt": "2023-06-08T04:29:56.213Z",
- "scrapeLinks": true,
- "scrapingSelector": ".article__content"
+  "feed": "http://rss.cnn.com/rss/cnn_topstories.rss",
+  "regionCode": "us",
+  "lastFetchedAt": "2023-06-08T04:29:56.213Z",
+  "scrapeLinks": true,
+  "scrapingSelector": ".article__content"
 }
 ```
 

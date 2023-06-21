@@ -5,7 +5,7 @@ export type FeedContentRecordType = {
   feed: string // HASH
   articleDate: string
   title: string
-  region: string
+  regionCode: string
   articleLink: string // SORT
   contentFromFeed: string
   contentFromScraping?: string

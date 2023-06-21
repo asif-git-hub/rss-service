@@ -5,13 +5,13 @@ import { removeSpacings } from "../utils/common.utils"
 
 export function mapRssToFeedContentItem(
   feed: string,
-  region: string,
+  regionCode: string,
   item: RssItemType,
   contentFromScraping?: string
 ): FeedContentRecordType {
   return {
     feed,
-    region,
+    regionCode,
     articleDate: toDateTimeString(item.pubDate),
     title: item.title,
     articleLink: item.link,

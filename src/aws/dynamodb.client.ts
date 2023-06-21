@@ -5,7 +5,7 @@ export class DynamoDBClient {
   private dynamodb: DynamoDB.DocumentClient
 
   constructor() {
-    this.dynamodb = new DynamoDB.DocumentClient()
+    this.dynamodb = new DynamoDB.DocumentClient({ region: "ap-southeast-2" }) //TODO: remove
   }
 
   async put<T>(table: string, item: Record<string, T>) {
@@ -18,7 +18,7 @@ export class DynamoDBClient {
   }
 
   async getByHashKey(tableName: string, hashkey: string, value: string) {
-    return await this.dynamodb
+    const result = await this.dynamodb
       .get({
         TableName: tableName,
         Key: {
@@ -26,6 +26,7 @@ export class DynamoDBClient {
         },
       })
       .promise()
+    return result.Item
   }
 
   async getByHashAndSortKey(

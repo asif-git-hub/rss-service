@@ -3,9 +3,11 @@ import { DynamoDBClient } from "../aws/dynamodb.client"
 
 export type FeedPromptRecordType = {
   role: string // HASH
-  region: string // SORT
+  regionCode: string // SORT
   prompt: string
 }
+
+const unspecifiedField = "unspecified"
 
 export class FeedPromptRepository {
   private tableName: string
@@ -18,14 +20,14 @@ export class FeedPromptRepository {
 
   async getPrompt(
     role: string,
-    region: string
+    regionCode: string
   ): Promise<FeedPromptRecordType | undefined> {
     return (await this.dynamodbClient.getByHashAndSortKey(
       this.tableName,
       "role",
       role,
-      "region",
-      region
+      "regionCode",
+      regionCode
     )) as FeedPromptRecordType | undefined
   }
 
@@ -33,32 +35,45 @@ export class FeedPromptRepository {
     return (await this.dynamodbClient.getByHashAndSortKey(
       this.tableName,
       "role",
-      "unspecified",
-      "region",
-      "unspecified"
+      unspecifiedField,
+      "regionCode",
+      unspecifiedField
     )) as FeedPromptRecordType | undefined
   }
 
   async getPromptOrFallbackPromptByRegion(
-    region: string
+    regionCode: string
   ): Promise<FeedPromptRecordType> {
-    let promptRecord = await this.getPrompt("unspecified", region)
+    let promptRecord = await this.getPrompt(unspecifiedField, regionCode)
     // Check for fallback case
     if (!promptRecord) {
       console.log(
-        `Prompt not found for role unspecified and region ${region}. Fetching fallback`
+        `Prompt not found for role unspecified and region ${regionCode}. Fetching fallback`
       )
 
       promptRecord = await this.getFallbackPrompt()
 
       if (!promptRecord) {
         console.error(
-          `Fallback prompt missing from database for region ${region}`
+          `Fallback prompt missing from database for region ${regionCode}`
         )
         throw new Error("Fallback prompt missing from database")
       }
     }
 
     return promptRecord
+  }
+
+  async getAllRoleSpecificPrompts(): Promise<
+    FeedPromptRecordType[] | undefined
+  > {
+    const prompts = await this.dynamodbClient.getAll(this.tableName)
+
+    return prompts?.filter((promptRecord) => {
+      return (
+        (promptRecord["role"] as string) !== unspecifiedField &&
+        (promptRecord.regionCode as string) !== unspecifiedField
+      )
+    }) as FeedPromptRecordType[] | undefined
   }
 }
