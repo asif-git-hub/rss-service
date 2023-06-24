@@ -104,4 +104,4 @@ Tweak max_tokens to adjust to larger article.
 
 Once everything has been set up, you can run the ECS Task using the AWS Console.
 
-Go to ECS > Clusters > Go to Task Tab and create a New Task with default settings. Choose the Family with latest revision version.
+Go to ECS > Clusters > Go to Task Tab and create a New Task with default settings. Choose the Family with latest revision version. 
