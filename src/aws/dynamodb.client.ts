@@ -5,7 +5,7 @@ export class DynamoDBClient {
   private dynamodb: DynamoDB.DocumentClient
 
   constructor() {
-    this.dynamodb = new DynamoDB.DocumentClient({ region: "ap-southeast-2" }) //TODO: remove
+    this.dynamodb = new DynamoDB.DocumentClient()
   }
 
   async put<T>(table: string, item: Record<string, T>) {

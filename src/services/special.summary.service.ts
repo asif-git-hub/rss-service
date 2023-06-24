@@ -38,9 +38,8 @@ export class SpecialSummaryService {
           const fullPrompt = `Act as a ${promptRecord.role}. ${promptRecord.prompt}: ${summaryRecord.summaryText}`
           const summaryResponse =
             await this.chatgptClient.completeWithErrorHandling(fullPrompt)
-          const summaryText = summaryResponse?.data?.choices[0]?.text
 
-          if (!summaryText) {
+          if (summaryResponse) {
             console.error(
               `Unable to generate summaryText for role: ${promptRecord.role} and region ${promptRecord.regionCode} prompt used: ${fullPrompt}`
             )
@@ -49,7 +48,8 @@ export class SpecialSummaryService {
           await this.specialSummaryRepo.createSpecialSummary({
             role: promptRecord.role,
             regionAndArticleDate: `${promptRecord.regionCode}-${summaryRecord.articleDate}`,
-            summaryText,
+            summaryText:
+              typeof summaryResponse === "string" ? summaryResponse : "",
             createdAt: new Date().toISOString(),
           })
         }

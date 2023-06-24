@@ -64,8 +64,6 @@ npm run deploy:prod for prod
 
 ## Sample RSS Feed Table
 
-- https://news.un.org/feed/subscribe/en/news/region/europe/feed/rss.xml
-
 ```json
 {
   "feed": "http://rss.cnn.com/rss/cnn_topstories.rss",
@@ -74,8 +72,36 @@ npm run deploy:prod for prod
   "scrapeLinks": true,
   "scrapingSelector": ".article__content"
 }
+
+{
+ "feed": "https://www.constructiondive.com/feeds/news/",
+ "regionCode": "us",
+ "lastFetchedAt": "2023-06-24T09:47:38.338Z",
+ "scrapeLinks": true,
+ "scrapingSelector": ".main-content p"
+}
 ```
+
+## Choosing a selector
+
+Reference: https://cheerio.js.org/docs/basics/selecting
+
+Choose a selector which covers the article main body class. Then you can even target the paragraphs using <p> or <h1> tags.
 
 ## Configuring default prompt
 
 Add a default prompt to prompt table by using 'unspecified' value for role and region. If you want a leave a hash key or sort key blank, simply put 'unspecified'
+
+
+## Configuring openai parameters
+
+Reference: https://platform.openai.com/docs/api-reference/completions/create
+in chatgpt.client.ts, you can modify the max_tokens and temperature parameters. 
+Tweak the temperature parameter according to your need depending on how creative you want chatgpt to be.
+Tweak max_tokens to adjust to larger article.
+
+## Testing
+
+Once everything has been set up, you can run the ECS Task using the AWS Console.
+
+Go to ECS > Clusters > Go to Task Tab and create a New Task with default settings. Choose the Family with latest revision version.

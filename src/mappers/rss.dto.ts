@@ -16,7 +16,7 @@ export function mapRssToFeedContentItem(
     title: item.title,
     articleLink: item.link,
     contentFromFeed: item.content,
-    contentFromScraping: removeSpacings(contentFromScraping),
+    contentFromScraping: contentFromScraping,
     savedAt: new Date().toISOString(),
   }
 }

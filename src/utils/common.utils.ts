@@ -15,18 +15,23 @@ export function delay(ms: number): Promise<void> {
 
 export function removeSpacings(str: string | undefined): string | undefined {
   if (str) {
-    const firstLine = str.split("\n")[0]
-    const cleanedFirstLine = firstLine.replace(/\s/g, "")
+    if (str.split("\n").length > 1) {
+      const firstLine = str.split("\n")[0]
 
-    // Remove new lines and tabbed spaces from the remaining string
-    const remainingString = str.split("\n").slice(1).join("\n")
-    const cleanedRemainingString = remainingString
-      .replace(/\n/g, "")
-      .replace(/\t/g, "")
+      const cleanedFirstLine = firstLine.replace(/\s/g, "")
 
-    // Concatenate the cleaned first line with the cleaned remaining string
-    const cleanedString = cleanedFirstLine + cleanedRemainingString
+      // Remove new lines and tabbed spaces from the remaining string
+      const remainingString = str.split("\n").slice(1).join("\n")
+      const cleanedRemainingString = remainingString
+        .replace(/\n/g, "")
+        .replace(/\t/g, "")
 
-    return cleanedString.trim()
+      // Concatenate the cleaned first line with the cleaned remaining string
+      const cleanedString = cleanedFirstLine + cleanedRemainingString
+
+      return cleanedString.trim()
+    } else {
+      return str
+    }
   }
 }

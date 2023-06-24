@@ -373,6 +373,8 @@ Resources:
               Value: https://api.openai.com/v1/completions
             - Name: GPT_DELAY_IN_MS
               Value: 3000
+            - Name: SHORTEN_PROMPT
+              Value: "Shorten this text in half, but retain the gist of the content: "
 
   # ECS Event Rule
   TaskScheduleRule:

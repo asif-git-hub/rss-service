@@ -2,7 +2,10 @@ import { HttpClient } from "./http.client"
 import { AxiosResponse, AxiosHeaders, AxiosError } from "axios"
 import { PromptCompletionError } from "../errors/prompt.completion.error"
 import { getEnvVar, delay } from "../utils/common.utils"
-import { ChatGPTMessageType } from "./types/chatgpt.client.types"
+import {
+  ChatGPTCustomErrorType,
+  ChatGPTMessageType,
+} from "./types/chatgpt.client.types"
 import { SSMClient } from "../aws/ssm.client"
 
 export class ChatGPTClient {
@@ -71,15 +74,15 @@ export class ChatGPTClient {
 
   async completeWithErrorHandling(
     prompt: string
-  ): Promise<AxiosResponse | undefined> {
+  ): Promise<string | ChatGPTCustomErrorType> {
     try {
       console.log("complete() called", prompt)
 
       const body = {
-        model: "gpt-3.5-turbo-16k",
+        model: "text-davinci-003",
         prompt,
-        max_tokens: 3700,
-        temperature: 0.1,
+        max_tokens: 1850,
+        temperature: 0.5,
         n: 1,
         stream: false,
       }
@@ -92,12 +95,15 @@ export class ChatGPTClient {
 
       await delay(parseInt(getEnvVar("GPT_DELAY_IN_MS"))) // Delay next request: Avoid 429 from OpenAI
 
-      return await this.httpClient.post(
+      const response = await this.httpClient.post(
         getEnvVar("OPENAI_COMPLETION_URL"),
         body,
         headers
       )
+
+      return response.data?.choices[0]?.text
     } catch (e) {
+      let reason = ""
       if (e instanceof AxiosError) {
         console.warn(
           `unable to perform complete, status code ${e.response?.statusText}: ${e.response?.status}`
@@ -108,6 +114,7 @@ export class ChatGPTClient {
             "Bad Request: Likely exceding model token size. Skipping request...",
             JSON.stringify(e.response.data)
           )
+          reason = "TOKEN_LIMIT"
         }
 
         if (e.response?.status === 429) {
@@ -116,12 +123,13 @@ export class ChatGPTClient {
             JSON.stringify(e.response.data)
           )
           await delay(10000) // wait 10s when 429
+          reason = "RATE_LIMIT"
         }
       } else {
         // Consume other errors
         console.warn("unable to perform complete() due to non axios error: ", e)
       }
-      return undefined
+      return { response: undefined, reason }
     }
   }
 }

@@ -11,3 +11,8 @@ export type ChatGPTMessageType = {
   role: "assistant" | "user" | "system"
   content: string
 }
+
+export type ChatGPTCustomErrorType = {
+  response: undefined
+  reason: string
+}

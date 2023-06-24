@@ -44,7 +44,7 @@ export class FeedRetrievalService {
         if (scrapeLinks && scrapingSelector && scrapeLinks === true) {
           console.log(`Content scraping required. Scraping: `, item.link)
           contentFromScraping = await this.scraperClient.getText(
-            String(item.link),
+            item.link,
             scrapingSelector
           )
         }
