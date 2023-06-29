@@ -5,6 +5,7 @@ import { getEnvVar, delay } from "../utils/common.utils"
 import {
   ChatGPTCustomErrorType,
   ChatGPTMessageType,
+  CustomChatGPTError,
 } from "./types/chatgpt.client.types"
 import { SSMClient } from "../aws/ssm.client"
 
@@ -103,7 +104,7 @@ export class ChatGPTClient {
 
       return response.data?.choices[0]?.text
     } catch (e) {
-      let reason = ""
+      let reason: CustomChatGPTError = CustomChatGPTError.UNKNOWN
       if (e instanceof AxiosError) {
         console.warn(
           `unable to perform complete, status code ${e.response?.statusText}: ${e.response?.status}`
@@ -114,7 +115,7 @@ export class ChatGPTClient {
             "Bad Request: Likely exceding model token size. Skipping request...",
             JSON.stringify(e.response.data)
           )
-          reason = "TOKEN_LIMIT"
+          reason = CustomChatGPTError.TOKEN_LIMIT
         }
 
         if (e.response?.status === 429) {
@@ -123,7 +124,7 @@ export class ChatGPTClient {
             JSON.stringify(e.response.data)
           )
           await delay(10000) // wait 10s when 429
-          reason = "RATE_LIMIT"
+          reason = CustomChatGPTError.RATE_LIMIT
         }
       } else {
         // Consume other errors

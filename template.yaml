@@ -375,6 +375,8 @@ Resources:
               Value: 3000
             - Name: SHORTEN_PROMPT
               Value: "Shorten this text in half, but retain the gist of the content: "
+            - Name: CHUNK_SIZE
+              Value: 5
 
   # ECS Event Rule
   TaskScheduleRule:

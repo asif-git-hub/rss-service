@@ -26,7 +26,7 @@ The schedule is set as a cron expression in the template, this can be changed
 # Create an ECR Repository to hold docker image
 
 Go to AWS Console > ECR
-Create a repository with name 'rss-processor' make it public and choose all the default settings.
+Create a repository with name 'rss-processor' make it private and choose all the default settings.
 If you give it another name, make sure to change the image name and the subsequent commands.
 
 # Push Image to ECR
@@ -105,3 +105,9 @@ Tweak max_tokens to adjust to larger article.
 Once everything has been set up, you can run the ECS Task using the AWS Console.
 
 Go to ECS > Clusters > Go to Task Tab and create a New Task with default settings. Choose the Family with latest revision version. 
+
+## Configurable environment variables
+
+GPT_DELAY_IN_MS = How long to wait in between requests
+SHORTEN_PROMPT = ChatGPT Prompt to shorten a long article or summary.
+CHUNK_SIZE = How many chunks to split the long contents by. Default is 5.

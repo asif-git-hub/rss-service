@@ -157,43 +157,22 @@ export class RegionSummaryService {
     contentFromScraping?: string
   ): Promise<string | undefined> {
     /* Create summary from either content from feed or content from web scraiping */
-    const fullPrompt = contentFromScraping
-      ? `${prompt} ${contentFromScraping}`
-      : `${prompt} ${contentFromFeed}`
 
-    // Try with web scraping content
-    let summaryResponse = await this.chatgptClient.completeWithErrorHandling(
-      fullPrompt
-    )
-
-    if (typeof summaryResponse === "string") {
-      // Successful summary creation from web scraped content
-      return summaryResponse
-    } else {
-      // Handle token limit
-      if (summaryResponse.reason === "TOKEN_LIMIT" && contentFromScraping) {
-        console.warn(
-          "Token limit hit for prompt. Attempting to shorten contentFromScraping"
-        )
-        // Attempt to cut down web scraped content
-
-        const shortenedContentFromScraping = await this.shortenText(
-          contentFromScraping
-        )
-
-        summaryResponse = await this.chatgptClient.completeWithErrorHandling(
-          `${prompt} ${shortenedContentFromScraping}`
-        )
-      }
+    let summaryResponse: string = ""
+    
+    if (contentFromScraping) {
+      // Try and use content from web scraping
+      summaryResponse = await this.summarizeWithErrorHandling(prompt, contentFromScraping)
+    } 
+    
+    if (!contentFromScraping || typeof summaryResponse !== "string") {
+      // If content from web scraping not available, try with content from feed
+      // If summaryResponse is not created from content from web scraping
+      summaryResponse = await this.summarizeWithErrorHandling(prompt, contentFromFeed)
     }
-    if (!summaryResponse || typeof summaryResponse !== "string") {
-      // If contentFromScraping too large (even after shortening), try to get summary from using contentFromFeed
-      console.log(
-        "Unable to create summary from contentFromScraping, trying with contentFromFeed"
-      )
-      summaryResponse = await this.chatgptClient.completeWithErrorHandling(
-        `${prompt} ${contentFromFeed}`
-      )
+
+    if (typeof summaryResponse !== "string") {
+      console.error(`Unable to create summary : ${summaryResponse}`, contentFromFeed)
     }
 
     return summaryResponse as string
@@ -202,7 +181,9 @@ export class RegionSummaryService {
   private async shortenText(content: string): Promise<string | undefined> {
     console.log("shortenText() called with: ", content)
 
-    const contentParts = splitLongText(content, 4) // Break into 4
+    const chunks = parseInt(getEnvVar("CHUNK_SIZE")) || 5
+
+    const contentParts = splitLongText(content, chunks) // Break into 5
 
     const prompt = getEnvVar("SHORTEN_PROMPT")
 
@@ -252,5 +233,35 @@ export class RegionSummaryService {
       )
       return ""
     }
+  }
+
+  async shortenAndSummarize(prompt: string, content: string): Promise<string> {
+
+    console.log("shortenAndSummarize() called")
+
+    const shortenedContent = await this.shortenText(
+      content
+    )
+
+    const summaryResponse = await this.chatgptClient.completeWithErrorHandling(
+      `${prompt} ${shortenedContent}`
+    )
+
+    return summaryResponse as string
+  }
+
+  private async summarizeWithErrorHandling(prompt: string, content: string): Promise<string> {
+
+    console.log("summarizeWithErrorHandling() called")
+
+    let summaryResponse = await this.chatgptClient.completeWithErrorHandling(
+      `${prompt} ${content}`
+    )
+
+    if (typeof summaryResponse !== "string" && summaryResponse.reason == "TOKEN_LIMIT") {
+      summaryResponse = await this.shortenAndSummarize(prompt, content)
+    }
+
+    return summaryResponse as string
   }
 }

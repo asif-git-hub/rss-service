@@ -14,5 +14,11 @@ export type ChatGPTMessageType = {
 
 export type ChatGPTCustomErrorType = {
   response: undefined
-  reason: string
+  reason: CustomChatGPTError
+}
+
+export enum CustomChatGPTError {
+  TOKEN_LIMIT = "TOKEN_LIMIT",
+  RATE_LIMIT = "RATE_LIMIT",
+  UNKNOWN = "UNKNOWN"
 }
