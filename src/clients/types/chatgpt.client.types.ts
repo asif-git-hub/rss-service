@@ -20,5 +20,5 @@ export type ChatGPTCustomErrorType = {
 export enum CustomChatGPTError {
   TOKEN_LIMIT = "TOKEN_LIMIT",
   RATE_LIMIT = "RATE_LIMIT",
-  UNKNOWN = "UNKNOWN"
+  UNKNOWN = "UNKNOWN",
 }

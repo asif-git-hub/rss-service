@@ -6,14 +6,17 @@ import {
   FeedRegionSummaryRepository,
 } from "../repository/region.summary.repo"
 import { toDateString } from "../utils/datetime.utils"
-import { ChatGPTCustomErrorType } from "../clients/types/chatgpt.client.types"
-import { splitLongText } from "../utils/text.utils"
 import { getEnvVar } from "../utils/common.utils"
+import { ShorteningService } from "./shortening.service"
+import { CompanyExtractorService } from "./company.extractor.service"
 
 type SummaryGroupingType = {
   regionCode: string
   articleDate: string
   summaryTexts: string[]
+  companyNames: string[]
+  companyIds: string[]
+  articleLinksUsed: string[]
 }
 
 export class RegionSummaryService {
@@ -21,18 +24,23 @@ export class RegionSummaryService {
   private feedContentRepo: FeedContentRepository
   private feedRegionSummaryRepo: FeedRegionSummaryRepository
   private promptRepo: FeedPromptRepository
+  private shorteningService: ShorteningService
+  private companyExtractorService: CompanyExtractorService
 
   constructor() {
     this.chatgptClient = new ChatGPTClient()
     this.feedContentRepo = new FeedContentRepository()
     this.feedRegionSummaryRepo = new FeedRegionSummaryRepository()
     this.promptRepo = new FeedPromptRepository()
+    this.shorteningService = new ShorteningService()
+    this.companyExtractorService = new CompanyExtractorService()
   }
 
   async createOneSummaryPerArticleDateAndRegion() {
     console.log("createOneSummaryPerArticleDateAndRegion() called")
 
     const summaries = await this.createSummariesFromAllArticles()
+
     const groupedSummaries = this.createGrouping(summaries)
 
     for (const summary of groupedSummaries) {
@@ -40,13 +48,15 @@ export class RegionSummaryService {
         if (summary.summaryTexts.length === 1) {
           // Already one summary for region and date, save it to db
           console.log(
-            `Saving summary for region ${summary.regionCode} and articleDate: ${summary.articleDate}. Summary: ${summary.summaryTexts[0]}`,
-            
+            `Saving summary for region ${summary.regionCode} and articleDate: ${summary.articleDate}. Summary: ${summary.summaryTexts[0]}`
           )
           await this.feedRegionSummaryRepo.createSummaryRecord({
             regionCode: summary.regionCode,
             articleDate: summary.articleDate,
             summaryText: summary.summaryTexts[0],
+            articleLinksUsed: summary.articleLinksUsed,
+            companyNames: summary.companyNames,
+            companyIds: summary.companyIds,
             createdAt: new Date().toISOString(),
           })
         }
@@ -72,6 +82,9 @@ export class RegionSummaryService {
             regionCode: summary.regionCode,
             articleDate: summary.articleDate,
             summaryText: singleSummary,
+            articleLinksUsed: summary.articleLinksUsed,
+            companyNames: summary.companyNames,
+            companyIds: summary.companyIds,
             createdAt: new Date().toISOString(),
           })
         }
@@ -91,14 +104,28 @@ export class RegionSummaryService {
       const key = summary.regionCode + summary.articleDate
       if (groupedObjects[key]) {
         groupedObjects[key].summaryTexts.push(summary.summaryText)
+        groupedObjects[key].articleLinksUsed = groupedObjects[
+          key
+        ].articleLinksUsed.concat(summary.articleLinksUsed)
+        groupedObjects[key].companyNames = groupedObjects[
+          key
+        ].companyNames.concat(summary.companyNames)
+        groupedObjects[key].companyIds = groupedObjects[key].companyIds.concat(
+          summary.companyIds
+        )
       } else {
         groupedObjects[key] = {
           regionCode: summary.regionCode,
           articleDate: summary.articleDate,
           summaryTexts: [summary.summaryText],
+          articleLinksUsed: summary.articleLinksUsed,
+          companyNames: summary.companyNames,
+          companyIds: summary.companyIds,
         }
       }
     }
+    console.log(groupedObjects)
+
     return Object.values(groupedObjects)
   }
 
@@ -107,6 +134,7 @@ export class RegionSummaryService {
   > {
     console.log("createSummariesFromAllArticles() called")
     const summaries: FeedRegionSummaryRecordType[] = []
+
     const feedContents = await this.feedContentRepo.getAllFeedContents()
 
     if (!feedContents || feedContents.length === 0) {
@@ -128,6 +156,14 @@ export class RegionSummaryService {
           feedContent.contentFromScraping
         )
 
+        const companyInfo =
+          await this.companyExtractorService.updateCompanyInformationInFeedContent(
+            feedContent.feed,
+            feedContent.articleLink,
+            feedContent.contentFromFeed,
+            feedContent.contentFromScraping
+          )
+
         if (summaryText) {
           // Push Summary if available
           console.log(
@@ -138,6 +174,9 @@ export class RegionSummaryService {
             regionCode: feedContent.regionCode,
             articleDate: toDateString(feedContent.articleDate),
             summaryText,
+            articleLinksUsed: [feedContent.articleLink],
+            companyNames: companyInfo.companyNames,
+            companyIds: companyInfo.companyIds,
             createdAt: new Date().toISOString(),
           })
         } else {
@@ -145,6 +184,11 @@ export class RegionSummaryService {
             `Summary text not formed for article: ${feedContent.articleLink}`
           )
         }
+      } else {
+        console.warn(
+          "contentFromFeed missing for article: ",
+          feedContent.articleLink
+        )
       }
     }
 
@@ -159,44 +203,32 @@ export class RegionSummaryService {
     /* Create summary from either content from feed or content from web scraiping */
 
     let summaryResponse: string = ""
-    
+
     if (contentFromScraping) {
       // Try and use content from web scraping
-      summaryResponse = await this.summarizeWithErrorHandling(prompt, contentFromScraping)
-    } 
-    
-    if (!contentFromScraping || typeof summaryResponse !== "string") {
-      // If content from web scraping not available, try with content from feed
-      // If summaryResponse is not created from content from web scraping
-      summaryResponse = await this.summarizeWithErrorHandling(prompt, contentFromFeed)
-    }
-
-    if (typeof summaryResponse !== "string") {
-      console.error(`Unable to create summary : ${summaryResponse}`, contentFromFeed)
-    }
-
-    return summaryResponse as string
-  }
-
-  private async shortenText(content: string): Promise<string | undefined> {
-    console.log("shortenText() called with: ", content)
-
-    const chunks = parseInt(getEnvVar("CHUNK_SIZE")) || 5
-
-    const contentParts = splitLongText(content, chunks) // Break into 5
-
-    const prompt = getEnvVar("SHORTEN_PROMPT")
-
-    const shortenedParts = []
-    for (const contentPart of contentParts) {
-      shortenedParts.push(
-        await this.chatgptClient.completeWithErrorHandling(
-          `${prompt} ${contentPart}`
-        )
+      summaryResponse = await this.summarizeWithErrorHandling(
+        prompt,
+        contentFromScraping
       )
     }
 
-    return shortenedParts.toString()
+    if (!contentFromScraping || typeof summaryResponse !== "string") {
+      // If content from web scraping not available, try with content from feed
+      // If summaryResponse is not created from content from web scraping
+      summaryResponse = await this.summarizeWithErrorHandling(
+        prompt,
+        contentFromFeed
+      )
+    }
+
+    if (typeof summaryResponse !== "string") {
+      console.error(
+        `Unable to create summary : ${summaryResponse}`,
+        contentFromFeed
+      )
+    }
+
+    return summaryResponse as string
   }
 
   private async performRollingSummarization(
@@ -223,7 +255,9 @@ export class RegionSummaryService {
       console.log(`Iteration ${i} summary: ${singleSummary}. =======`)
     }
 
-    console.log(`performRollingSummarization() finished: ${singleSummary} =======`)
+    console.log(
+      `performRollingSummarization() finished: ${singleSummary} =======`
+    )
 
     if (singleSummary && typeof singleSummary === "string") {
       return singleSummary
@@ -236,11 +270,13 @@ export class RegionSummaryService {
   }
 
   async shortenAndSummarize(prompt: string, content: string): Promise<string> {
-
     console.log("shortenAndSummarize() called")
 
-    const shortenedContent = await this.shortenText(
-      content
+    const chunks = parseInt(getEnvVar("CHUNK_SIZE")) || 5
+
+    const shortenedContent = await this.shorteningService.shortenText(
+      content,
+      chunks
     )
 
     const summaryResponse = await this.chatgptClient.completeWithErrorHandling(
@@ -250,15 +286,20 @@ export class RegionSummaryService {
     return summaryResponse as string
   }
 
-  private async summarizeWithErrorHandling(prompt: string, content: string): Promise<string> {
-
+  private async summarizeWithErrorHandling(
+    prompt: string,
+    content: string
+  ): Promise<string> {
     console.log("summarizeWithErrorHandling() called")
 
     let summaryResponse = await this.chatgptClient.completeWithErrorHandling(
       `${prompt} ${content}`
     )
 
-    if (typeof summaryResponse !== "string" && summaryResponse.reason == "TOKEN_LIMIT") {
+    if (
+      typeof summaryResponse !== "string" &&
+      summaryResponse.reason == "TOKEN_LIMIT"
+    ) {
       summaryResponse = await this.shortenAndSummarize(prompt, content)
     }
 

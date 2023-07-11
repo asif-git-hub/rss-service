@@ -9,6 +9,9 @@ export type FeedContentRecordType = {
   articleLink: string // SORT
   contentFromFeed: string
   contentFromScraping?: string
+  companyNames?: string[]
+  companyIds?: number[]
+  companiesExtracted?: boolean
   savedAt: string
 }
 
@@ -28,6 +31,18 @@ export class FeedContentRepository {
   async getAllFeedContents(): Promise<FeedContentRecordType[]> {
     return (await this.dynamodbClient.getAll(
       this.tableName
-    )) as FeedContentRecordType[]
+    )) as unknown as FeedContentRecordType[]
+  }
+
+  async updateCompanyInfo<T>(
+    feed: string,
+    articleLink: string,
+    fieldsToUpdate: Partial<FeedContentRecordType>
+  ) {
+    await this.dynamodbClient.updateRecord(
+      this.tableName,
+      { feed, articleLink },
+      fieldsToUpdate
+    )
   }
 }

@@ -377,6 +377,14 @@ Resources:
               Value: "Shorten this text in half, but retain the gist of the content: "
             - Name: CHUNK_SIZE
               Value: 5
+            - Name: COMPANY_EXTRACTION_PROMPT
+              Value: "You have all company knowledge. Extract all company names from this article, you must return your response as a JSON with key companyNames:"
+            - Name: COMPANY_DB_HOST
+              Value: rss-processor-company-db.ctqddlq0pj3o.ap-southeast-2.rds.amazonaws.com
+            - Name: DB_USERNAME
+              Value: admin
+            - Name: DB_PASSWORD_SSM
+              Value: "/companydb/password"
 
   # ECS Event Rule
   TaskScheduleRule:

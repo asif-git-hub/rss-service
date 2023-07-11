@@ -5,7 +5,7 @@ export class DynamoDBClient {
   private dynamodb: DynamoDB.DocumentClient
 
   constructor() {
-    this.dynamodb = new DynamoDB.DocumentClient()
+    this.dynamodb = new DynamoDB.DocumentClient({ region: "ap-southeast-2" })
   }
 
   async put<T>(table: string, item: Record<string, T>) {
@@ -86,6 +86,33 @@ export class DynamoDBClient {
         ExpressionAttributeValues: {
           ":x": updateField[fieldToUpdate],
         },
+      })
+      .promise()
+  }
+
+  async updateRecord<T, U>(
+    tableName: string,
+    keyItem: Record<string, T>,
+    fieldsToUpdate: Record<string, U>
+  ) {
+    let updateExpression = "set "
+    let expressionAttributeValues: DynamoDB.DocumentClient.ExpressionAttributeValueMap =
+      {}
+    const updateKeys = Object.keys(fieldsToUpdate)
+
+    for (const key of updateKeys) {
+      updateExpression = updateExpression.concat(`${key} = :${key}, `)
+      const value = fieldsToUpdate[key as keyof typeof fieldsToUpdate]
+
+      expressionAttributeValues[`:${key}`] = value
+    }
+
+    await this.dynamodb
+      .update({
+        TableName: tableName,
+        Key: keyItem,
+        UpdateExpression: updateExpression.slice(0, -2),
+        ExpressionAttributeValues: expressionAttributeValues,
       })
       .promise()
   }

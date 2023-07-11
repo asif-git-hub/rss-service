@@ -92,11 +92,10 @@ Choose a selector which covers the article main body class. Then you can even ta
 
 Add a default prompt to prompt table by using 'unspecified' value for role and region. If you want a leave a hash key or sort key blank, simply put 'unspecified'
 
-
 ## Configuring openai parameters
 
 Reference: https://platform.openai.com/docs/api-reference/completions/create
-in chatgpt.client.ts, you can modify the max_tokens and temperature parameters. 
+in chatgpt.client.ts, you can modify the max_tokens and temperature parameters.
 Tweak the temperature parameter according to your need depending on how creative you want chatgpt to be.
 Tweak max_tokens to adjust to larger article.
 
@@ -104,7 +103,7 @@ Tweak max_tokens to adjust to larger article.
 
 Once everything has been set up, you can run the ECS Task using the AWS Console.
 
-Go to ECS > Clusters > Go to Task Tab and create a New Task with default settings. Choose the Family with latest revision version. 
+Go to ECS > Clusters > Go to Task Tab and create a New Task with default settings. Choose the Family with latest revision version.
 
 ## Configurable environment variables
 

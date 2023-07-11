@@ -1,7 +1,7 @@
 import { FeedContentRecordType } from "../repository/feedcontent.repo"
+import { FeedRegionSummaryRecordType } from "../repository/region.summary.repo"
 import { RssItemType } from "../types/rss.types"
 import { toDateTimeString } from "../utils/datetime.utils"
-import { removeSpacings } from "../utils/common.utils"
 
 export function mapRssToFeedContentItem(
   feed: string,

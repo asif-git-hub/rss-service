@@ -5,3 +5,7 @@ export type RssItemType = {
   author: string
   content: string
 }
+
+export type CompanyExtractionType = {
+  companyNames: string[]
+}

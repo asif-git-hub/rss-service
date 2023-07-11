@@ -5,6 +5,8 @@ export type SpecialSummaryRecordType = {
   role: string // HASH
   regionAndArticleDate: string // SORT
   summaryText: string
+  companyNames: string[]
+  companyIds: string[]
   createdAt: string
 }
 

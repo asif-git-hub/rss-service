@@ -50,6 +50,8 @@ export class SpecialSummaryService {
             regionAndArticleDate: `${promptRecord.regionCode}-${summaryRecord.articleDate}`,
             summaryText:
               typeof summaryResponse === "string" ? summaryResponse : "",
+            companyNames: summaryRecord.companyNames,
+            companyIds: summaryRecord.companyIds,
             createdAt: new Date().toISOString(),
           })
         }

@@ -5,6 +5,9 @@ export type FeedRegionSummaryRecordType = {
   regionCode: string // HASH
   articleDate: string // SORT
   summaryText: string
+  articleLinksUsed: string[]
+  companyNames: string[]
+  companyIds: string[]
   createdAt: string
 }
 
