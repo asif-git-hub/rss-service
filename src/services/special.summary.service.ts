@@ -39,18 +39,17 @@ export class SpecialSummaryService {
           const summaryResponse =
             await this.chatgptClient.completeWithErrorHandling(fullPrompt)
 
-          if (summaryResponse) {
-            console.error(
-              `Unable to generate summaryText for role: ${promptRecord.role} and region ${promptRecord.regionCode} prompt used: ${fullPrompt}`
-            )
-          }
+          console.log(
+            `SPECIALSUMMARY :: Saving special summary for ${promptRecord.regionCode}-${summaryRecord.articleDate} and role ${promptRecord.role}`
+          )
 
           await this.specialSummaryRepo.createSpecialSummary({
             role: promptRecord.role,
             regionAndArticleDate: `${promptRecord.regionCode}-${summaryRecord.articleDate}`,
             summaryText:
               typeof summaryResponse === "string" ? summaryResponse : "",
-            companyNames: summaryRecord.companyNames,
+            companyNamesFromGPT: summaryRecord.companyNamesFromGPT,
+            articleLinksUsed: summaryRecord.articleLinksUsed,
             companyIds: summaryRecord.companyIds,
             createdAt: new Date().toISOString(),
           })

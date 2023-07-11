@@ -9,7 +9,7 @@ export type FeedContentRecordType = {
   articleLink: string // SORT
   contentFromFeed: string
   contentFromScraping?: string
-  companyNames?: string[]
+  companyNamesFromGPT?: string[]
   companyIds?: number[]
   companiesExtracted?: boolean
   savedAt: string

@@ -3,7 +3,7 @@ import { SSM } from "aws-sdk"
 export class SSMClient {
   private ssmClient
   constructor() {
-    this.ssmClient = new SSM({ region: "ap-southeast-2" })
+    this.ssmClient = new SSM()
   }
 
   async getParameter(parameterName: string) {

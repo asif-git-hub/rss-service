@@ -19,3 +19,13 @@ export function splitLongText(
 
   return parts
 }
+
+export function wrapElementsWithQuotes(inputArray: string[]) {
+  // Map over each element in the input array and wrap it with quotes
+  const wrappedArray = inputArray.map((element) => `"${element}"`)
+
+  // Join all elements in the wrapped array with a comma separator
+  const outputString = wrappedArray.join(", ")
+
+  return outputString
+}

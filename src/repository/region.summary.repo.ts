@@ -6,8 +6,8 @@ export type FeedRegionSummaryRecordType = {
   articleDate: string // SORT
   summaryText: string
   articleLinksUsed: string[]
-  companyNames: string[]
-  companyIds: string[]
+  companyNamesFromGPT: string[]
+  companyIds: number[]
   createdAt: string
 }
 

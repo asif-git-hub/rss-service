@@ -14,8 +14,8 @@ type SummaryGroupingType = {
   regionCode: string
   articleDate: string
   summaryTexts: string[]
-  companyNames: string[]
-  companyIds: string[]
+  companyNamesFromGPT: string[]
+  companyIds: number[]
   articleLinksUsed: string[]
 }
 
@@ -48,14 +48,14 @@ export class RegionSummaryService {
         if (summary.summaryTexts.length === 1) {
           // Already one summary for region and date, save it to db
           console.log(
-            `Saving summary for region ${summary.regionCode} and articleDate: ${summary.articleDate}. Summary: ${summary.summaryTexts[0]}`
+            `REGIONSUMMARY : Saving summary for region ${summary.regionCode} and articleDate: ${summary.articleDate}. Summary: ${summary.summaryTexts[0]}`
           )
           await this.feedRegionSummaryRepo.createSummaryRecord({
             regionCode: summary.regionCode,
             articleDate: summary.articleDate,
             summaryText: summary.summaryTexts[0],
             articleLinksUsed: summary.articleLinksUsed,
-            companyNames: summary.companyNames,
+            companyNamesFromGPT: summary.companyNamesFromGPT,
             companyIds: summary.companyIds,
             createdAt: new Date().toISOString(),
           })
@@ -75,7 +75,7 @@ export class RegionSummaryService {
           )
 
           console.log(
-            `Saving one summary from multiple summaries for region: ${summary.regionCode} and articleDate: ${summary.articleDate}. Summary: ${singleSummary}`
+            `REGIONSUMMARY : Saving one summary from multiple summaries for region: ${summary.regionCode} and articleDate: ${summary.articleDate}. Summary: ${singleSummary}`
           )
 
           await this.feedRegionSummaryRepo.createSummaryRecord({
@@ -83,7 +83,7 @@ export class RegionSummaryService {
             articleDate: summary.articleDate,
             summaryText: singleSummary,
             articleLinksUsed: summary.articleLinksUsed,
-            companyNames: summary.companyNames,
+            companyNamesFromGPT: summary.companyNamesFromGPT,
             companyIds: summary.companyIds,
             createdAt: new Date().toISOString(),
           })
@@ -104,12 +104,15 @@ export class RegionSummaryService {
       const key = summary.regionCode + summary.articleDate
       if (groupedObjects[key]) {
         groupedObjects[key].summaryTexts.push(summary.summaryText)
+
         groupedObjects[key].articleLinksUsed = groupedObjects[
           key
         ].articleLinksUsed.concat(summary.articleLinksUsed)
-        groupedObjects[key].companyNames = groupedObjects[
+
+        groupedObjects[key].companyNamesFromGPT = groupedObjects[
           key
-        ].companyNames.concat(summary.companyNames)
+        ].companyNamesFromGPT.concat(summary.companyNamesFromGPT)
+
         groupedObjects[key].companyIds = groupedObjects[key].companyIds.concat(
           summary.companyIds
         )
@@ -119,7 +122,7 @@ export class RegionSummaryService {
           articleDate: summary.articleDate,
           summaryTexts: [summary.summaryText],
           articleLinksUsed: summary.articleLinksUsed,
-          companyNames: summary.companyNames,
+          companyNamesFromGPT: summary.companyNamesFromGPT,
           companyIds: summary.companyIds,
         }
       }
@@ -132,7 +135,6 @@ export class RegionSummaryService {
   private async createSummariesFromAllArticles(): Promise<
     FeedRegionSummaryRecordType[]
   > {
-    console.log("createSummariesFromAllArticles() called")
     const summaries: FeedRegionSummaryRecordType[] = []
 
     const feedContents = await this.feedContentRepo.getAllFeedContents()
@@ -175,7 +177,7 @@ export class RegionSummaryService {
             articleDate: toDateString(feedContent.articleDate),
             summaryText,
             articleLinksUsed: [feedContent.articleLink],
-            companyNames: companyInfo.companyNames,
+            companyNamesFromGPT: companyInfo.companyNames,
             companyIds: companyInfo.companyIds,
             createdAt: new Date().toISOString(),
           })

@@ -109,4 +109,20 @@ Go to ECS > Clusters > Go to Task Tab and create a New Task with default setting
 
 GPT_DELAY_IN_MS = How long to wait in between requests
 SHORTEN_PROMPT = ChatGPT Prompt to shorten a long article or summary.
-CHUNK_SIZE = How many chunks to split the long contents by. Default is 5.
+CHUNK_SIZE = How many chunks to split the long contents by. Default is 8.
+
+COMPANY_DB_HOST = DB Host of the mysql database
+DB_USERNAME = DB Username with enough accesss to run SELECT queries
+DB_PASSWORD = DB Password for user
+DB_NAME = Database Name
+TABLE_NAME = Table containing company information
+
+
+## Connecting a MYSQL DB to the processor
+
+Replace the env variables below:
+COMPANY_DB_HOST = DB Host of the mysql database
+DB_USERNAME = DB Username with enough accesss to run SELECT queries
+DB_PASSWORD = DB Password for user
+DB_NAME = Database Name
+TABLE_NAME = Table containing company information

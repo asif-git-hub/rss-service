@@ -187,6 +187,7 @@ Resources:
           ENV: !Sub ${env}
           FEED_TABLE_NAME: !Ref feedTable
           FEED_CONTENT_TABLE_NAME: !Ref feedContentTable
+          AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
       Events:
         EventbridgeRule:
           Type: Schedule
@@ -369,6 +370,8 @@ Resources:
               Value: !Ref feedRegionSummaryTable
             - Name: FEED_SPECIAL_SUMMARY_TABLE_NAME
               Value: !Ref feedSpecialSummaryTable
+            - Name: AWS_NODEJS_CONNECTION_REUSE_ENABLED
+              Value: 1
             - Name: OPENAI_COMPLETION_URL
               Value: https://api.openai.com/v1/completions
             - Name: GPT_DELAY_IN_MS
@@ -376,15 +379,19 @@ Resources:
             - Name: SHORTEN_PROMPT
               Value: "Shorten this text in half, but retain the gist of the content: "
             - Name: CHUNK_SIZE
-              Value: 5
+              Value: 8
             - Name: COMPANY_EXTRACTION_PROMPT
               Value: "You have all company knowledge. Extract all company names from this article, you must return your response as a JSON with key companyNames:"
             - Name: COMPANY_DB_HOST
-              Value: rss-processor-company-db.ctqddlq0pj3o.ap-southeast-2.rds.amazonaws.com
+              Value: "rss-processor-company-db.ctqddlq0pj3o.ap-southeast-2.rds.amazonaws.com"
             - Name: DB_USERNAME
               Value: admin
-            - Name: DB_PASSWORD_SSM
-              Value: "/companydb/password"
+            - Name: DB_NAME
+              Value: COMPANY_DB
+            - Name: DB_PASSWORD
+              Value: "_ImQ|B[Y_&CQ!n.s8AJv<xDcXFt2"
+            - Name: TABLE_NAME
+              Value: "comapny_info"
 
   # ECS Event Rule
   TaskScheduleRule:

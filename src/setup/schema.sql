@@ -10,6 +10,6 @@ CREATE TABLE comapny_info(
 	fax VARCHAR(30),
 	website VARCHAR(30),
 	phone VARCHAR(30),
-	tags VARCHAR(30),
-	PRIMARY KEY(id, name)
+	tags VARCHAR(100),
+	PRIMARY KEY(id)
 );

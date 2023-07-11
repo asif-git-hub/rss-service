@@ -8,3 +8,6 @@ service
   .catch((e) => {
     console.error(e)
   })
+  .finally(() => {
+    process.exit()
+  })

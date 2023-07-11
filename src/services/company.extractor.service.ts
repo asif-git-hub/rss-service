@@ -4,20 +4,23 @@ import { CompanyExtractionType } from "../types/rss.types"
 import { getEnvVar } from "../utils/common.utils"
 import { splitLongText } from "../utils/text.utils"
 import { FeedContentRepository } from "../repository/feedcontent.repo"
+import { CompanyDBRepo } from "../repository/companydb.repo"
 
 export type CompanyInfoType = {
   companyNames: string[]
-  companyIds: string[]
+  companyIds: number[]
 }
 
 export class CompanyExtractorService {
   private chatgptClient: ChatGPTClient
   private feedContentRepo: FeedContentRepository
+  private companydbRepo: CompanyDBRepo
   private extractionPrompt: string
 
   constructor() {
     this.chatgptClient = new ChatGPTClient()
     this.feedContentRepo = new FeedContentRepository()
+    this.companydbRepo = new CompanyDBRepo()
     this.extractionPrompt = getEnvVar("COMPANY_EXTRACTION_PROMPT")
   }
 
@@ -52,17 +55,23 @@ export class CompanyExtractorService {
       contentFromScraping
     )
 
+    const companyInfoFromDB = await this.companydbRepo.getCompanyIdsByNames(
+      companyNames
+    )
+
+    const companyIds = companyInfoFromDB.map(({ id }) => id)
+
     console.log(
       `Company names extracted for article ${articleLink}: ${companyNames}`
     )
 
-    //TODO: make db call to get companyIds
     await this.feedContentRepo.updateCompanyInfo(feed, articleLink, {
       companiesExtracted: true,
-      companyNames,
+      companyNamesFromGPT: companyNames,
+      companyIds,
     })
 
-    return { companyNames, companyIds: [] }
+    return { companyNames, companyIds }
   }
 
   async getCompaniesFromContent(
@@ -83,7 +92,7 @@ export class CompanyExtractorService {
       const companyExtracted: CompanyExtractionType = JSON.parse(response)
       return companyExtracted
     } else {
-        console.log("Getting company names by chunks")
+      console.log("Getting company names by chunks")
       let companies: string[] = []
 
       if (response.reason === CustomChatGPTError.TOKEN_LIMIT) {
@@ -96,9 +105,9 @@ export class CompanyExtractorService {
           )
           if (typeof response === "string") {
             try {
-                companies = companies.concat(JSON.parse(response).companyNames)
+              companies = companies.concat(JSON.parse(response).companyNames)
             } catch (e) {
-                console.error("Unable to parse response from GPT : ", response)
+              console.error("Unable to parse response from GPT : ", response)
             }
           }
         }
